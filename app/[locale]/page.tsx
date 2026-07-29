@@ -2,38 +2,78 @@
 
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
+import { DICT, LABEL, LOCALES, isLocale, type Locale } from "./dict";
 
 export default function Page({ params }: { params: Promise<{ locale: string }> }) {
-  const { locale } = use(params);
-  const [attrs, setAttrs] = useState("(reading…)");
+  const { locale: raw } = use(params);
+  const locale: Locale = isLocale(raw) ? raw : "en";
+  const t = DICT[locale];
 
+  const [attrs, setAttrs] = useState("");
+  const [theme, setTheme] = useState<string | null>(null);
+
+  // Poll so you can watch the attribute vanish the instant you switch language.
   useEffect(() => {
-    const read = () =>
-      setAttrs([...document.documentElement.attributes].map((a) => a.name).sort().join(", "));
+    const read = () => {
+      const el = document.documentElement;
+      setAttrs([...el.attributes].map((a) => a.name).sort().join(", "));
+      setTheme(el.getAttribute("data-theme"));
+    };
     read();
-    const id = setInterval(read, 200);
+    const id = setInterval(read, 100);
     return () => clearInterval(id);
   }, []);
 
-  const other = locale === "ja" ? "ko" : "ja";
-  const ok = attrs.includes("data-theme");
+  const toggle = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("repro-theme", next);
+    setTheme(next);
+  };
+
+  const themed = theme !== null;
 
   return (
-    <main style={{ font: "16px/1.6 system-ui", padding: 32 }}>
-      <h1>locale: {locale}</h1>
-      <p>
-        <code>&lt;html&gt;</code> attributes: <b>{attrs}</b>
+    <main>
+      <h1>{t.heading}</h1>
+
+      <div className="row">
+        <strong>{t.theme}:</strong>
+        <button className="btn" onClick={toggle}>
+          {theme === "dark" ? `☀︎ ${t.toLight}` : `☾ ${t.toDark}`}
+        </button>
+      </div>
+
+      <div className="row">
+        <strong>{t.language}:</strong>
+        {LOCALES.map((l) => (
+          <Link
+            key={l}
+            href={`/${l}`}
+            className="btn"
+            aria-current={l === locale ? "true" : undefined}
+          >
+            {LABEL[l]}
+          </Link>
+        ))}
+      </div>
+
+      <p className="attrs">
+        {t.attrs}: <code>{attrs || "…"}</code>
       </p>
-      <p style={{ fontSize: 24 }}>{ok ? "✅ data-theme present" : "❌ data-theme GONE"}</p>
-      <p>
-        <Link href={`/${other}`}>→ switch locale to {other}</Link>
+
+      <p className={`status ${themed ? "ok" : "bad"}`}>
+        {themed ? `✅ ${t.ok}` : `❌ ${t.bad}`}
       </p>
+      {!themed && <p style={{ color: "var(--muted)" }}>{t.note}</p>}
+
       <hr />
+      <h2 style={{ fontSize: "1rem" }}>{t.steps}</h2>
       <ol>
-        <li>Load <code>/ja</code>. You see <code>data-theme, lang</code> — ✅.</li>
-        <li>Click &quot;switch locale&quot; (a soft navigation; the document is NOT reloaded).</li>
-        <li><code>data-theme</code> is gone — ❌. Navigating back does not restore it.</li>
-        <li>Hard-reload the page: it comes back, proving the inline script never re-runs on soft nav.</li>
+        <li>{t.s1}</li>
+        <li>{t.s2}</li>
+        <li>{t.s3}</li>
+        <li>{t.s4}</li>
       </ol>
     </main>
   );

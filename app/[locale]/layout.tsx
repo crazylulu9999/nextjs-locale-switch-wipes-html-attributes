@@ -1,13 +1,20 @@
+import "../globals.css";
+import { LOCALES, isLocale } from "./dict";
+
 // NOTE: there is intentionally NO app/layout.tsx.
-// This is the official Next.js i18n pattern: the [locale] segment IS the root layout.
+// The [locale] segment IS the root layout — the pattern the Next.js docs prescribe:
 // https://nextjs.org/docs/app/guides/internationalization
+// Adding app/layout.tsx would move <html> above the [locale] segment and the bug
+// would disappear (at the cost of no longer being able to server-render lang={locale}).
 export function generateStaticParams() {
-  return [{ locale: "ja" }, { locale: "ko" }];
+  return LOCALES.map((locale) => ({ locale }));
 }
 
-// Stand-in for any theme library's FOUC-prevention script (next-themes, etc.).
-// It sets an attribute on <html> before hydration.
-const INIT = `document.documentElement.setAttribute('data-theme','dark')`;
+// Stand-in for any theme library's FOUC-prevention script (next-themes and friends
+// all do this). It runs once, while the browser parses the server HTML, and sets an
+// attribute on <html> that React does not own.
+const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('repro-theme');
+if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})()`;
 
 export default async function RootLayout({
   children,
@@ -17,10 +24,11 @@ export default async function RootLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  const lang = isLocale(locale) ? locale : "en";
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={lang} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: INIT }} />
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body>{children}</body>
     </html>

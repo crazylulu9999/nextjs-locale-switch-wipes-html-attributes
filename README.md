@@ -1,19 +1,23 @@
 # Switching locale wipes imperatively-set `<html>` attributes (App Router)
 
 Minimal reproduction. No Tailwind, no i18n library, no theme library — just the
-**officially documented** App Router i18n layout.
+**officially documented** App Router i18n layout, three locales, and a dark-mode toggle.
 
 ```bash
 npm install
-npm run dev      # then open http://localhost:3000/ja
+npm run dev      # http://localhost:3333  (redirects to /en)
 ```
 
 ## Steps to reproduce
 
-1. Open `/ja`. The page shows `<html> attributes: data-theme, lang` — ✅.
-2. Click **switch locale** (a `next/link` soft navigation — the document is *not* reloaded).
-3. `data-theme` is gone — ❌. Going back to `/ja` does **not** restore it.
-4. Hard-reload: it comes back — proving the inline script never re-runs on a soft navigation.
+1. Open <http://localhost:3333> — it redirects to `/en`. Locales are `/en`, `/ja`, `/ko`.
+2. Click **“Switch to dark”**. The page turns dark.
+3. Click another language (`日本語` / `한국어`). This is a `next/link` soft navigation —
+   the document is **not** reloaded.
+4. **The page visibly turns white** and `<html> attributes` loses `data-theme`. Going back
+   does not restore it. Your choice is still in `localStorage` — it is the DOM attribute
+   that was destroyed.
+5. Hard-reload: dark comes back, proving the inline script never re-runs on a soft navigation.
 
 ## Expected vs actual
 
@@ -69,3 +73,13 @@ Framework-free React reproduction of the second half:
 ## Versions
 
 `next@16.3.0-canary.102`, `react@19.2.8`, `react-dom@19.2.8`, Node 25.
+
+## Notes on the repro's shape
+
+- There is deliberately **no `app/page.tsx`**. Adding one would require an `app/layout.tsx`,
+  which would move `<html>` above the `[locale]` segment — and the bug would disappear.
+  `/` is handled by a `redirects()` entry in `next.config.mjs` instead; a real app would pick
+  the locale from `Accept-Language` in `proxy.ts`/`middleware.ts`.
+- The dark palette hangs entirely off `html[data-theme="dark"]` in `app/globals.css`, the same
+  way Tailwind's `dark:` variant and `next-themes`' `attribute="class"` do. That is why losing
+  one attribute repaints the whole page.
