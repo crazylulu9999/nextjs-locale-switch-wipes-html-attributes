@@ -8,6 +8,8 @@ npm install
 npm run dev      # http://localhost:3333  (redirects to /en)
 ```
 
+![Toggling dark mode on /ko, then clicking English: the route changes, the page repaints white and data-theme is gone](demo.gif)
+
 ## Steps to reproduce
 
 1. Open <http://localhost:3333> — it redirects to `/en`. Locales are `/en`, `/ja`, `/ko`.

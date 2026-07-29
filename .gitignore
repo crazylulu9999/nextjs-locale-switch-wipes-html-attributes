@@ -3,3 +3,5 @@ node_modules/
 package-lock.json
 next-env.d.ts
 *.tsbuildinfo
+.DS_Store
+chrome_*.gif
