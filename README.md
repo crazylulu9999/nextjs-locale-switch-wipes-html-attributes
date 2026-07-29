@@ -19,6 +19,22 @@ npm run dev      # http://localhost:3333  (redirects to /en)
    that was destroyed.
 5. Hard-reload: dark comes back, proving the inline script never re-runs on a soft navigation.
 
+## The console warning is part of the bug
+
+In development you will see:
+
+> Encountered a script tag while rendering React component. Scripts inside React components are never executed when rendering on the client.
+
+That is **expected, and it is corroborating evidence** — not a defect in this reproduction. React is
+saying out loud that the `<script>` it just built on the client will never run. It is why step 4
+matters: the inline theme script only ever executes while the browser parses the server HTML, so
+after a soft navigation there is nothing left to restore `data-theme`.
+
+The layout keeps the plain `<script dangerouslySetInnerHTML>` on purpose, because that is what
+`next-themes` and every SSR dark-mode guide tell you to write. (Rendering it through
+`useServerInsertedHTML` silences the warning, but the attribute is still wiped — it changes nothing
+about the bug.)
+
 ## Expected vs actual
 
 **Expected:** an attribute React does not own should survive a client-side navigation, exactly as it
@@ -72,7 +88,9 @@ Framework-free React reproduction of the second half:
 
 ## Versions
 
-`next@16.3.0-canary.102`, `react@19.2.8`, `react-dom@19.2.8`, Node 25.
+`next@16.3.0-canary.102`, `react@19.2.8`, `react-dom@19.2.8`, Node 25. All three are pinned to exact
+versions: a caret range on a canary happily resolves to a `preview` build (semver orders `preview`
+above `canary`), which is not what you want in a bug report.
 
 ## Notes on the repro's shape
 
